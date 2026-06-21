@@ -10,8 +10,58 @@
     <link rel="stylesheet" href="css/weight.css">
     <link rel="stylesheet" href="css/workout.css">
     <link rel="stylesheet" href="css/motivation.css">
+    <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
+    <!-- 登录页面 -->
+    <div id="authPage" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">🏋️</div>
+            <h1>蜕变·HomeFit</h1>
+            <p class="auth-subtitle">在家锻炼规划与追踪</p>
+
+            <!-- 登录表单 -->
+            <div id="loginForm" class="auth-form">
+                <h2>登录</h2>
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码" class="form-input">
+                </div>
+                <button class="btn-primary btn-full" onclick="handleLogin()">登录</button>
+                <p class="auth-switch">还没有账号？<a href="#" onclick="showRegister()">立即注册</a></p>
+
+                <!-- 已有账号快捷登录 -->
+                <div id="existingUsers" class="existing-users hidden">
+                    <p class="existing-users-title">已有账号</p>
+                    <div id="usersList" class="users-list"></div>
+                </div>
+            </div>
+
+            <!-- 注册表单 -->
+            <div id="registerForm" class="auth-form hidden">
+                <h2>注册</h2>
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="regUsername" placeholder="2-20个字符" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="regPassword" placeholder="至少4位" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="regConfirmPassword" placeholder="再次输入密码" class="form-input">
+                </div>
+                <button class="btn-primary btn-full" onclick="handleRegister()">注册</button>
+                <p class="auth-switch">已有账号？<a href="#" onclick="showLogin()">返回登录</a></p>
+            </div>
+        </div>
+    </div>
+
     <!-- 首次启动引导问卷 -->
     <div id="onboarding" class="onboarding-container">
         <div class="onboarding-progress">
@@ -618,6 +668,7 @@
     <div class="toast hidden" id="toast"></div>
 
     <!-- 引入JS文件 -->
+    <script src="js/auth.js"></script>
     <script src="js/data.js"></script>
     <script src="js/onboarding.js"></script>
     <script src="js/workout.js"></script>

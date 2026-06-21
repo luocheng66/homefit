@@ -1,5 +1,5 @@
 /**
- * 主应用模块 - 性能优化版
+ * 主应用模块 - 支持多用户
  */
 
 // 工具函数：防抖
@@ -45,37 +45,206 @@ function clearDOMCache() {
  * 应用初始化
  */
 function initApp() {
-    // 使用 requestAnimationFrame 确保DOM已渲染
-    requestAnimationFrame(() => {
+    // 检查登录状态
+    if (authManager.isLoggedIn()) {
+        // 已登录，初始化用户数据
+        dataManager.initForUser();
+
+        // 检查是否已完成引导
         if (dataManager.isOnboardingComplete()) {
-            document.getElementById('onboarding').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-            initMainApp();
+            showMainApp();
         } else {
-            document.getElementById('onboarding').classList.remove('hidden');
-            document.getElementById('mainApp').classList.add('hidden');
+            showOnboarding();
         }
-    });
+    } else {
+        // 未登录，显示登录页面
+        showAuthPage();
+    }
 }
 
 /**
- * 初始化主应用
+ * 显示登录页面
  */
-function initMainApp() {
-    // 分批初始化，避免阻塞主线程
+function showAuthPage() {
+    document.getElementById('authPage').classList.remove('hidden');
+    document.getElementById('onboarding').classList.add('hidden');
+    document.getElementById('mainApp').classList.add('hidden');
+
+    // 加载已有用户列表
+    loadExistingUsers();
+}
+
+/**
+ * 显示引导问卷
+ */
+function showOnboarding() {
+    document.getElementById('authPage').classList.add('hidden');
+    document.getElementById('onboarding').classList.remove('hidden');
+    document.getElementById('mainApp').classList.add('hidden');
+}
+
+/**
+ * 显示主应用
+ */
+function showMainApp() {
+    document.getElementById('authPage').classList.add('hidden');
+    document.getElementById('onboarding').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+
+    // 分批初始化
     requestAnimationFrame(() => {
         initWeightModule();
         initMotivationModule();
     });
 
-    // 延迟加载非关键模块
     setTimeout(() => {
         initWorkoutModule();
         initReportModule();
         bindKeyboardEvents();
     }, 100);
+}
 
-    console.log('蜕变·HomeFit 应用初始化完成！');
+/**
+ * 加载已有用户列表
+ */
+function loadExistingUsers() {
+    const users = authManager.getUsersList();
+    const existingUsersEl = document.getElementById('existingUsers');
+    const usersListEl = document.getElementById('usersList');
+
+    if (users.length > 0) {
+        existingUsersEl.classList.remove('hidden');
+        usersListEl.innerHTML = users.map(user => `
+            <div class="user-chip" onclick="quickLogin('${user.username}')">
+                <span class="user-chip-icon">👤</span>
+                <span>${user.username}</span>
+            </div>
+        `).join('');
+    } else {
+        existingUsersEl.classList.add('hidden');
+    }
+}
+
+/**
+ * 快速登录（选择已有账号）
+ */
+function quickLogin(username) {
+    document.getElementById('loginUsername').value = username;
+    document.getElementById('loginPassword').focus();
+}
+
+/**
+ * 显示登录表单
+ */
+function showLogin() {
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
+    clearAuthError();
+}
+
+/**
+ * 显示注册表单
+ */
+function showRegister() {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.remove('hidden');
+    clearAuthError();
+}
+
+/**
+ * 清除错误提示
+ */
+function clearAuthError() {
+    const errorEl = document.querySelector('.auth-error');
+    if (errorEl) {
+        errorEl.textContent = '';
+    }
+}
+
+/**
+ * 显示错误提示
+ */
+function showAuthError(message) {
+    let errorEl = document.querySelector('.auth-error');
+    if (!errorEl) {
+        errorEl = document.createElement('p');
+        errorEl.className = 'auth-error';
+        const activeForm = document.querySelector('.auth-form:not(.hidden)');
+        if (activeForm) {
+            activeForm.appendChild(errorEl);
+        }
+    }
+    errorEl.textContent = message;
+}
+
+/**
+ * 处理登录
+ */
+function handleLogin() {
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+
+    const result = authManager.login(username, password);
+
+    if (result.success) {
+        // 登录成功
+        dataManager.initForUser();
+
+        if (dataManager.isOnboardingComplete()) {
+            showMainApp();
+        } else {
+            showOnboarding();
+        }
+    } else {
+        showAuthError(result.message);
+    }
+}
+
+/**
+ * 处理注册
+ */
+function handleRegister() {
+    const username = document.getElementById('regUsername').value;
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+    if (password !== confirmPassword) {
+        showAuthError('两次输入的密码不一致');
+        return;
+    }
+
+    if (password.length < 4) {
+        showAuthError('密码至少4位');
+        return;
+    }
+
+    const result = authManager.register(username, password);
+
+    if (result.success) {
+        // 注册成功，进入引导问卷
+        dataManager.initForUser();
+        showOnboarding();
+    } else {
+        showAuthError(result.message);
+    }
+}
+
+/**
+ * 登出
+ */
+function handleLogout() {
+    if (confirm('确定要退出登录吗？')) {
+        authManager.logout();
+        clearDOMCache();
+        showAuthPage();
+    }
+}
+
+/**
+ * 初始化主应用（保留兼容）
+ */
+function initMainApp() {
+    showMainApp();
 }
 
 /**
@@ -102,7 +271,7 @@ function bindKeyboardEvents() {
 }
 
 /**
- * 显示提示消息（防抖版本）
+ * 显示提示消息
  */
 const showToast = debounce(function(message) {
     const toast = getCachedElement('toast');
@@ -117,28 +286,24 @@ const showToast = debounce(function(message) {
 }, 300);
 
 /**
- * 切换页面（使用事件委托优化）
+ * 切换页面
  */
 function switchPage(element) {
     const page = element.dataset.page;
     if (!page) return;
 
-    // 批量更新DOM
     requestAnimationFrame(() => {
-        // 更新导航状态
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
         });
         element.classList.add('active');
 
-        // 隐藏所有页面
         const pages = ['dashboard', 'workoutPage', 'weightHistoryPage', 'weeklyReportPage'];
         pages.forEach(id => {
             const el = getCachedElement(id);
             if (el) el.classList.add('hidden');
         });
 
-        // 显示目标页面
         switch (page) {
             case 'dashboard':
                 showDashboard();
@@ -160,7 +325,6 @@ function showDashboard() {
     const dashboard = getCachedElement('dashboard');
     if (dashboard) {
         dashboard.classList.remove('hidden');
-        // 延迟更新数据
         setTimeout(() => {
             updateWeightDisplay();
         }, 50);
@@ -179,7 +343,6 @@ function showWeightPage() {
     const weightPage = getCachedElement('weightHistoryPage');
     if (weightPage) {
         weightPage.classList.remove('hidden');
-        // 延迟渲染图表
         setTimeout(() => {
             renderWeightHistory();
             updateWeightStats();
@@ -192,7 +355,6 @@ function showReportPage() {
     const reportPage = getCachedElement('weeklyReportPage');
     if (reportPage) {
         reportPage.classList.remove('hidden');
-        // 延迟渲染
         setTimeout(() => {
             showWeeklyReport();
         }, 50);

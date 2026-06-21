@@ -1,17 +1,7 @@
 /**
- * 数据存储层 - 性能优化版
+ * 数据存储层 - 支持多用户
  * 使用内存缓存减少localStorage读写
  */
-
-const STORAGE_KEYS = {
-    USER_PROFILE: 'homefit_user_profile',
-    WEIGHT_RECORDS: 'homefit_weight_records',
-    WORKOUT_LOGS: 'homefit_workout_logs',
-    DIET_RECORDS: 'homefit_diet_records',
-    SETTINGS: 'homefit_settings',
-    STREAK: 'homefit_streak',
-    ACHIEVEMENTS: 'homefit_achievements'
-};
 
 // 写入队列和定时器
 let writeQueue = {};
@@ -19,91 +9,80 @@ let writeTimer = null;
 
 class DataManager {
     constructor() {
-        // 批量加载数据到内存
-        this.userProfile = this.load(STORAGE_KEYS.USER_PROFILE) || null;
-        this.weightRecords = this.load(STORAGE_KEYS.WEIGHT_RECORDS) || {};
-        this.workoutLogs = this.load(STORAGE_KEYS.WORKOUT_LOGS) || {};
-        this.dietRecords = this.load(STORAGE_KEYS.DIET_RECORDS) || {};
-        this.settings = this.load(STORAGE_KEYS.SETTINGS) || this.getDefaultSettings();
-        this.streak = this.load(STORAGE_KEYS.STREAK) || { current: 0, longest: 0, lastDate: null };
-        this.achievements = this.load(STORAGE_KEYS.ACHIEVEMENTS) || [];
+        this.dataKey = null;
+        this.userData = null;
     }
 
-    load(key) {
-        try {
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : null;
-        } catch (e) {
-            console.error('加载数据失败:', e);
-            return null;
+    // 初始化当前用户数据
+    initForUser() {
+        this.dataKey = authManager.getUserDataKey();
+        if (!this.dataKey) return false;
+
+        const data = authManager.getUserData();
+        if (data) {
+            this.userData = data;
+        } else {
+            // 初始化空数据
+            this.userData = {
+                userProfile: null,
+                weightRecords: {},
+                workoutLogs: {},
+                dietRecords: {},
+                streak: { current: 0, longest: 0, lastDate: null },
+                achievements: [],
+                settings: {
+                    unit: 'kg',
+                    voiceEnabled: true,
+                    voiceStyle: 'encouraging',
+                    notifications: true
+                }
+            };
+            this.save();
         }
+        return true;
     }
 
-    // 批量写入优化
-    save(key, data) {
-        writeQueue[key] = data;
-
-        if (!writeTimer) {
-            writeTimer = setTimeout(() => {
-                this.flushWrites();
-            }, 100);
+    save() {
+        if (this.dataKey && this.userData) {
+            authManager.saveUserData(this.userData);
         }
-    }
-
-    flushWrites() {
-        try {
-            Object.entries(writeQueue).forEach(([key, data]) => {
-                localStorage.setItem(key, JSON.stringify(data));
-            });
-            writeQueue = {};
-        } catch (e) {
-            console.error('保存数据失败:', e);
-        }
-        writeTimer = null;
-    }
-
-    getDefaultSettings() {
-        return {
-            unit: 'kg',
-            voiceEnabled: true,
-            voiceStyle: 'encouraging',
-            notifications: true
-        };
     }
 
     // ============ 用户档案 ============
 
     saveUserProfile(profile) {
-        this.userProfile = profile;
-        this.save(STORAGE_KEYS.USER_PROFILE, profile);
+        this.userData.userProfile = profile;
+        this.save();
     }
 
     getUserProfile() {
-        return this.userProfile;
+        return this.userData?.userProfile || null;
     }
 
     isOnboardingComplete() {
-        return this.userProfile && this.userProfile.onboardingComplete;
+        return this.userData?.userProfile?.onboardingComplete === true;
     }
 
     // ============ 体重记录 ============
 
     saveWeightRecord(date, morning, evening) {
-        this.weightRecords[date] = {
+        if (!this.userData) return;
+
+        this.userData.weightRecords[date] = {
             morning: morning ? parseFloat(morning) : null,
             evening: evening ? parseFloat(evening) : null,
             updatedAt: new Date().toISOString()
         };
-        this.save(STORAGE_KEYS.WEIGHT_RECORDS, this.weightRecords);
+        this.save();
         this.updateStreak();
     }
 
     getWeightRecord(date) {
-        return this.weightRecords[date] || null;
+        return this.userData?.weightRecords[date] || null;
     }
 
     getWeightRecords() {
-        return this.weightRecords;
+        return this.userData?.weightRecords || {};
     }
 
     getRecentWeightRecords(days = 7) {
@@ -114,7 +93,7 @@ class DataManager {
             const date = new Date(today);
             date.setDate(date.getDate() - i);
             const dateKey = this.formatDate(date);
-            const record = this.weightRecords[dateKey];
+            const record = this.userData?.weightRecords[dateKey];
 
             if (record) {
                 records.push({
@@ -128,21 +107,19 @@ class DataManager {
     }
 
     getLatestWeight() {
-        const dates = Object.keys(this.weightRecords).sort().reverse();
+        const dates = Object.keys(this.userData?.weightRecords || {}).sort().reverse();
         if (dates.length === 0) return null;
 
-        const latest = this.weightRecords[dates[0]];
+        const latest = this.userData.weightRecords[dates[0]];
         return latest.morning || latest.evening;
     }
 
     getStartWeight() {
-        if (!this.userProfile) return null;
-        return this.userProfile.currentWeight;
+        return this.userData?.userProfile?.currentWeight || null;
     }
 
     getTargetWeight() {
-        if (!this.userProfile) return null;
-        return this.userProfile.targetWeight;
+        return this.userData?.userProfile?.targetWeight || null;
     }
 
     getWeeklyAverageWeight() {
@@ -178,19 +155,21 @@ class DataManager {
     // ============ 训练记录 ============
 
     saveWorkoutLog(date, log) {
-        this.workoutLogs[date] = {
+        if (!this.userData) return;
+
+        this.userData.workoutLogs[date] = {
             ...log,
             completedAt: new Date().toISOString()
         };
-        this.save(STORAGE_KEYS.WORKOUT_LOGS, this.workoutLogs);
+        this.save();
     }
 
     getWorkoutLog(date) {
-        return this.workoutLogs[date] || null;
+        return this.userData?.workoutLogs[date] || null;
     }
 
     getWorkoutLogs() {
-        return this.workoutLogs;
+        return this.userData?.workoutLogs || {};
     }
 
     getWeeklyWorkoutCount() {
@@ -202,7 +181,7 @@ class DataManager {
             date.setDate(date.getDate() - i);
             const dateKey = this.formatDate(date);
 
-            if (this.workoutLogs[dateKey]) {
+            if (this.userData?.workoutLogs[dateKey]) {
                 count++;
             }
         }
@@ -219,8 +198,8 @@ class DataManager {
             date.setDate(date.getDate() - i);
             const dateKey = this.formatDate(date);
 
-            if (this.workoutLogs[dateKey]) {
-                totalDuration += this.workoutLogs[dateKey].duration || 0;
+            if (this.userData?.workoutLogs[dateKey]) {
+                totalDuration += this.userData.workoutLogs[dateKey].duration || 0;
             }
         }
 
@@ -230,50 +209,56 @@ class DataManager {
     // ============ 饮食记录 ============
 
     saveDietRecord(date, meals) {
-        this.dietRecords[date] = meals;
-        this.save(STORAGE_KEYS.DIET_RECORDS, this.dietRecords);
+        if (!this.userData) return;
+
+        this.userData.dietRecords[date] = meals;
+        this.save();
     }
 
     getDietRecord(date) {
-        return this.dietRecords[date] || null;
+        return this.userData?.dietRecords[date] || null;
     }
 
     // ============ 连续打卡 ============
 
     updateStreak() {
+        if (!this.userData) return;
+
         const today = this.formatDate(new Date());
         const yesterday = this.formatDate(new Date(Date.now() - 86400000));
 
-        if (this.streak.lastDate === today) {
+        if (this.userData.streak.lastDate === today) {
             return;
         }
 
-        if (this.streak.lastDate === yesterday) {
-            this.streak.current++;
-            this.streak.longest = Math.max(this.streak.current, this.streak.longest);
-        } else if (this.streak.lastDate !== today) {
-            this.streak.current = 1;
+        if (this.userData.streak.lastDate === yesterday) {
+            this.userData.streak.current++;
+            this.userData.streak.longest = Math.max(this.userData.streak.current, this.userData.streak.longest);
+        } else {
+            this.userData.streak.current = 1;
         }
 
-        this.streak.lastDate = today;
-        this.save(STORAGE_KEYS.STREAK, this.streak);
+        this.userData.streak.lastDate = today;
+        this.save();
         this.checkAchievements();
     }
 
     getStreak() {
-        return this.streak;
+        return this.userData?.streak || { current: 0, longest: 0, lastDate: null };
     }
 
     // ============ 成就系统 ============
 
     checkAchievements() {
+        if (!this.userData) return [];
+
         const newAchievements = [];
 
         const streakMilestones = [3, 7, 14, 30, 60, 100];
         streakMilestones.forEach(days => {
             const id = `streak_${days}`;
-            if (this.streak.current >= days && !this.achievements.includes(id)) {
-                this.achievements.push(id);
+            if (this.userData.streak.current >= days && !this.userData.achievements.includes(id)) {
+                this.userData.achievements.push(id);
                 newAchievements.push({
                     id,
                     name: `连续打卡${days}天`,
@@ -282,12 +267,12 @@ class DataManager {
             }
         });
 
-        const totalWorkouts = Object.keys(this.workoutLogs).length;
+        const totalWorkouts = Object.keys(this.userData.workoutLogs || {}).length;
         const workoutMilestones = [1, 10, 50, 100];
         workoutMilestones.forEach(count => {
             const id = `workout_${count}`;
-            if (totalWorkouts >= count && !this.achievements.includes(id)) {
-                this.achievements.push(id);
+            if (totalWorkouts >= count && !this.userData.achievements.includes(id)) {
+                this.userData.achievements.push(id);
                 newAchievements.push({
                     id,
                     name: `完成${count}次训练`,
@@ -303,8 +288,8 @@ class DataManager {
             const weightMilestones = [1, 2, 5, 10, 20];
             weightMilestones.forEach(kg => {
                 const id = `weight_${kg}`;
-                if (weightLoss >= kg && !this.achievements.includes(id)) {
-                    this.achievements.push(id);
+                if (weightLoss >= kg && !this.userData.achievements.includes(id)) {
+                    this.userData.achievements.push(id);
                     newAchievements.push({
                         id,
                         name: `减重${kg}kg`,
@@ -314,12 +299,12 @@ class DataManager {
             });
         }
 
-        this.save(STORAGE_KEYS.ACHIEVEMENTS, this.achievements);
+        this.save();
         return newAchievements;
     }
 
     getAchievements() {
-        return this.achievements;
+        return this.userData?.achievements || [];
     }
 
     getStreakIcon(days) {
@@ -331,12 +316,30 @@ class DataManager {
         return '✨';
     }
 
+    // ============ 设置 ============
+
+    getSettings() {
+        return this.userData?.settings || {
+            unit: 'kg',
+            voiceEnabled: true,
+            voiceStyle: 'encouraging',
+            notifications: true
+        };
+    }
+
+    saveSettings(settings) {
+        if (!this.userData) return;
+        this.userData.settings = settings;
+        this.save();
+    }
+
     // ============ 计划计算 ============
 
     calculatePlan() {
-        if (!this.userProfile) return null;
+        const profile = this.getUserProfile();
+        if (!profile) return null;
 
-        const { currentWeight, targetWeight, duration, environment } = this.userProfile;
+        const { currentWeight, targetWeight, duration, environment } = profile;
         const weightDiff = Math.abs(currentWeight - targetWeight);
         const isWeightLoss = targetWeight < currentWeight;
         const weeklyRate = (weightDiff / duration).toFixed(2);
@@ -410,7 +413,7 @@ class DataManager {
         if (!startWeight || !currentWeight || !plan) return null;
 
         const weightChange = startWeight - currentWeight;
-        const workoutDays = Object.keys(this.workoutLogs).length;
+        const workoutDays = Object.keys(this.userData?.workoutLogs || {}).length;
         const efficiency = workoutDays > 0 ? (weightChange / workoutDays).toFixed(2) : 0;
 
         const expectedChange = plan.weeklyRate * (workoutDays / 7);
@@ -481,8 +484,9 @@ class DataManager {
     }
 
     getWeekNumber() {
-        if (!this.userProfile) return 1;
-        const startDate = new Date(this.userProfile.createdAt);
+        const profile = this.getUserProfile();
+        if (!profile) return 1;
+        const startDate = new Date(profile.createdAt);
         const today = new Date();
         const diffTime = Math.abs(today - startDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -501,32 +505,28 @@ class DataManager {
         return {
             version: '1.0',
             exportDate: new Date().toISOString(),
-            userProfile: this.userProfile,
-            weightRecords: this.weightRecords,
-            workoutLogs: this.workoutLogs,
-            dietRecords: this.dietRecords,
-            streak: this.streak,
-            achievements: this.achievements
+            ...this.userData
         };
     }
 
     importData(data) {
         try {
             if (data.version) {
-                this.userProfile = data.userProfile;
-                this.weightRecords = data.weightRecords || {};
-                this.workoutLogs = data.workoutLogs || {};
-                this.dietRecords = data.dietRecords || {};
-                this.streak = data.streak || { current: 0, longest: 0, lastDate: null };
-                this.achievements = data.achievements || [];
-
-                this.save(STORAGE_KEYS.USER_PROFILE, this.userProfile);
-                this.save(STORAGE_KEYS.WEIGHT_RECORDS, this.weightRecords);
-                this.save(STORAGE_KEYS.WORKOUT_LOGS, this.workoutLogs);
-                this.save(STORAGE_KEYS.DIET_RECORDS, this.dietRecords);
-                this.save(STORAGE_KEYS.STREAK, this.streak);
-                this.save(STORAGE_KEYS.ACHIEVEMENTS, this.achievements);
-
+                this.userData = {
+                    userProfile: data.userProfile,
+                    weightRecords: data.weightRecords || {},
+                    workoutLogs: data.workoutLogs || {},
+                    dietRecords: data.dietRecords || {},
+                    streak: data.streak || { current: 0, longest: 0, lastDate: null },
+                    achievements: data.achievements || [],
+                    settings: data.settings || {
+                        unit: 'kg',
+                        voiceEnabled: true,
+                        voiceStyle: 'encouraging',
+                        notifications: true
+                    }
+                };
+                this.save();
                 return true;
             }
             return false;
@@ -537,17 +537,21 @@ class DataManager {
     }
 
     resetAllData() {
-        Object.values(STORAGE_KEYS).forEach(key => {
-            localStorage.removeItem(key);
-        });
-
-        this.userProfile = null;
-        this.weightRecords = {};
-        this.workoutLogs = {};
-        this.dietRecords = {};
-        this.settings = this.getDefaultSettings();
-        this.streak = { current: 0, longest: 0, lastDate: null };
-        this.achievements = [];
+        this.userData = {
+            userProfile: null,
+            weightRecords: {},
+            workoutLogs: {},
+            dietRecords: {},
+            streak: { current: 0, longest: 0, lastDate: null },
+            achievements: [],
+            settings: {
+                unit: 'kg',
+                voiceEnabled: true,
+                voiceStyle: 'encouraging',
+                notifications: true
+            }
+        };
+        this.save();
     }
 }
 

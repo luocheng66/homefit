@@ -154,7 +154,8 @@ function switchPage(element) {
  */
 function showSettings() {
     const profile = dataManager.getUserProfile();
-    const settings = dataManager.settings;
+    const settings = dataManager.getSettings();
+    const currentUser = authManager.getCurrentUser();
 
     const settingsHTML = `
         <div class="settings-page" id="settingsPage">
@@ -165,6 +166,17 @@ function showSettings() {
             </div>
 
             <div class="settings-content">
+                <div class="settings-section">
+                    <div class="settings-section-title">当前账号</div>
+                    <div class="settings-item">
+                        <div class="settings-item-left">
+                            <span class="settings-item-icon">👤</span>
+                            <span class="settings-item-label">用户名</span>
+                        </div>
+                        <span class="settings-item-value">${currentUser}</span>
+                    </div>
+                </div>
+
                 <div class="settings-section">
                     <div class="settings-section-title">个人信息</div>
                     <div class="settings-item">
@@ -247,6 +259,17 @@ function showSettings() {
                 </div>
 
                 <div class="settings-section">
+                    <div class="settings-section-title">账号</div>
+                    <div class="settings-item danger" onclick="handleLogout()">
+                        <div class="settings-item-left">
+                            <span class="settings-item-icon">🚪</span>
+                            <span class="settings-item-label">退出登录</span>
+                        </div>
+                        <span class="settings-item-arrow">›</span>
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <div class="settings-section-title">关于</div>
                     <div class="settings-item">
                         <div class="settings-item-left">
@@ -277,8 +300,9 @@ function closeSettings() {
  * 切换语音
  */
 function toggleVoice(enabled) {
-    dataManager.settings.voiceEnabled = enabled;
-    dataManager.save(STORAGE_KEYS.SETTINGS, dataManager.settings);
+    const settings = dataManager.getSettings();
+    settings.voiceEnabled = enabled;
+    dataManager.saveSettings(settings);
     showToast(enabled ? '语音引导已开启' : '语音引导已关闭');
 }
 
@@ -286,8 +310,9 @@ function toggleVoice(enabled) {
  * 切换通知
  */
 function toggleNotifications(enabled) {
-    dataManager.settings.notifications = enabled;
-    dataManager.save(STORAGE_KEYS.SETTINGS, dataManager.settings);
+    const settings = dataManager.getSettings();
+    settings.notifications = enabled;
+    dataManager.saveSettings(settings);
     showToast(enabled ? '提醒通知已开启' : '提醒通知已关闭');
 }
 
