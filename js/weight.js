@@ -14,6 +14,7 @@ const debouncedSaveWeight = debounce(function(date, morning, evening) {
  */
 function initWeightModule() {
     loadTodayWeight();
+    loadTodayDiet();
     // 延迟更新显示
     requestAnimationFrame(() => {
         updateWeightDisplay();
@@ -285,6 +286,64 @@ function saveEditedWeight() {
     updateWeightDisplay();
     clearChartCache();
     showToast('体重记录已更新');
+}
+
+/**
+ * 饮食标签选择
+ */
+function tagMeal(element) {
+    const meal = element.dataset.meal;
+    const color = element.dataset.color;
+
+    // 移除同组其他选中状态
+    const parent = element.parentElement;
+    parent.querySelectorAll('.meal-tag').forEach(tag => {
+        tag.classList.remove('selected');
+    });
+
+    // 添加选中状态
+    element.classList.add('selected');
+
+    // 保存饮食记录
+    const today = dataManager.formatDate(new Date());
+    let dietRecord = dataManager.getDietRecord(today) || {};
+
+    dietRecord[meal] = {
+        color: color,
+        timestamp: new Date().toISOString()
+    };
+
+    dataManager.saveDietRecord(today, dietRecord);
+
+    // 显示反馈
+    const messages = {
+        green: '👍 健康饮食！继续保持！',
+        yellow: '👌 适量摄入，注意均衡！',
+        red: '⚠️ 偶尔放纵没关系，明天注意调整！'
+    };
+
+    showToast(messages[color]);
+}
+
+/**
+ * 加载今日饮食记录
+ */
+function loadTodayDiet() {
+    const today = dataManager.formatDate(new Date());
+    const dietRecord = dataManager.getDietRecord(today);
+
+    if (!dietRecord) return;
+
+    // 恢复选中状态
+    ['breakfast', 'lunch', 'dinner'].forEach(meal => {
+        if (dietRecord[meal]) {
+            const selector = `.meal-tag[data-meal="${meal}"][data-color="${dietRecord[meal].color}"]`;
+            const element = document.querySelector(selector);
+            if (element) {
+                element.classList.add('selected');
+            }
+        }
+    });
 }
 
 /**

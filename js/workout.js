@@ -24,6 +24,23 @@ function updateTodayWorkout() {
     document.getElementById('workoutType').textContent = workout.type;
     document.getElementById('workoutDuration').textContent = workout.duration > 0 ? `约${workout.duration}分钟` : '休息日';
     document.getElementById('workoutMuscles').textContent = workout.muscles.length > 0 ? workout.muscles.join('、') : '好好休息';
+
+    // 根据是否休息日更新按钮
+    const startBtn = document.querySelector('.btn-start-workout');
+    const minimumBtn = document.querySelector('.btn-minimum-workout');
+
+    if (workout.duration === 0) {
+        // 休息日
+        startBtn.textContent = '今天是休息日 🧘';
+        startBtn.style.background = '#a8edea';
+        minimumBtn.style.display = 'block';
+        minimumBtn.textContent = '做5分钟轻度拉伸';
+    } else {
+        startBtn.textContent = '开始训练';
+        startBtn.style.background = '';
+        minimumBtn.style.display = 'block';
+        minimumBtn.textContent = '最低限度版本（5分钟）';
+    }
 }
 
 /**
