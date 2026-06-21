@@ -155,26 +155,20 @@ function showRegister() {
  * 清除错误提示
  */
 function clearAuthError() {
-    const errorEl = document.querySelector('.auth-error');
-    if (errorEl) {
-        errorEl.textContent = '';
-    }
+    const loginError = document.getElementById('loginError');
+    const registerError = document.getElementById('registerError');
+    if (loginError) loginError.textContent = '';
+    if (registerError) registerError.textContent = '';
 }
 
 /**
  * 显示错误提示
  */
-function showAuthError(message) {
-    let errorEl = document.querySelector('.auth-error');
-    if (!errorEl) {
-        errorEl = document.createElement('p');
-        errorEl.className = 'auth-error';
-        const activeForm = document.querySelector('.auth-form:not(.hidden)');
-        if (activeForm) {
-            activeForm.appendChild(errorEl);
-        }
+function showAuthError(message, type = 'register') {
+    const errorEl = document.getElementById(type === 'login' ? 'loginError' : 'registerError');
+    if (errorEl) {
+        errorEl.textContent = message;
     }
-    errorEl.textContent = message;
 }
 
 /**
@@ -183,6 +177,11 @@ function showAuthError(message) {
 function handleLogin() {
     const username = document.getElementById('loginUsername').value;
     const password = document.getElementById('loginPassword').value;
+
+    if (!username || !password) {
+        showAuthError('请输入用户名和密码', 'login');
+        return;
+    }
 
     const result = authManager.login(username, password);
 
@@ -196,7 +195,7 @@ function handleLogin() {
             showOnboarding();
         }
     } else {
-        showAuthError(result.message);
+        showAuthError(result.message, 'login');
     }
 }
 
@@ -208,24 +207,32 @@ function handleRegister() {
     const password = document.getElementById('regPassword').value;
     const confirmPassword = document.getElementById('regConfirmPassword').value;
 
+    console.log('注册:', username, password, confirmPassword);
+
+    if (!username || !password || !confirmPassword) {
+        showAuthError('请填写所有字段', 'register');
+        return;
+    }
+
     if (password !== confirmPassword) {
-        showAuthError('两次输入的密码不一致');
+        showAuthError('两次输入的密码不一致', 'register');
         return;
     }
 
     if (password.length < 4) {
-        showAuthError('密码至少4位');
+        showAuthError('密码至少4位', 'register');
         return;
     }
 
     const result = authManager.register(username, password);
+    console.log('注册结果:', result);
 
     if (result.success) {
         // 注册成功，进入引导问卷
         dataManager.initForUser();
         showOnboarding();
     } else {
-        showAuthError(result.message);
+        showAuthError(result.message, 'register');
     }
 }
 

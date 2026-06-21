@@ -31,6 +31,7 @@
                     <label>密码</label>
                     <input type="password" id="loginPassword" placeholder="请输入密码" class="form-input">
                 </div>
+                <p id="loginError" class="auth-error"></p>
                 <button class="btn-primary btn-full" onclick="handleLogin()">登录</button>
                 <p class="auth-switch">还没有账号？<a href="#" onclick="showRegister()">立即注册</a></p>
 
@@ -56,6 +57,7 @@
                     <label>确认密码</label>
                     <input type="password" id="regConfirmPassword" placeholder="再次输入密码" class="form-input">
                 </div>
+                <p id="registerError" class="auth-error"></p>
                 <button class="btn-primary btn-full" onclick="handleRegister()">注册</button>
                 <p class="auth-switch">已有账号？<a href="#" onclick="showLogin()">返回登录</a></p>
             </div>
