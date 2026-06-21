@@ -1,5 +1,6 @@
 /**
- * 数据存储层 - 管理所有用户数据
+ * 数据存储层 - 性能优化版
+ * 使用内存缓存减少localStorage读写
  */
 
 const STORAGE_KEYS = {
@@ -12,8 +13,13 @@ const STORAGE_KEYS = {
     ACHIEVEMENTS: 'homefit_achievements'
 };
 
+// 写入队列和定时器
+let writeQueue = {};
+let writeTimer = null;
+
 class DataManager {
     constructor() {
+        // 批量加载数据到内存
         this.userProfile = this.load(STORAGE_KEYS.USER_PROFILE) || null;
         this.weightRecords = this.load(STORAGE_KEYS.WEIGHT_RECORDS) || {};
         this.workoutLogs = this.load(STORAGE_KEYS.WORKOUT_LOGS) || {};
@@ -33,12 +39,27 @@ class DataManager {
         }
     }
 
+    // 批量写入优化
     save(key, data) {
+        writeQueue[key] = data;
+
+        if (!writeTimer) {
+            writeTimer = setTimeout(() => {
+                this.flushWrites();
+            }, 100);
+        }
+    }
+
+    flushWrites() {
         try {
-            localStorage.setItem(key, JSON.stringify(data));
+            Object.entries(writeQueue).forEach(([key, data]) => {
+                localStorage.setItem(key, JSON.stringify(data));
+            });
+            writeQueue = {};
         } catch (e) {
             console.error('保存数据失败:', e);
         }
+        writeTimer = null;
     }
 
     getDefaultSettings() {
@@ -124,7 +145,6 @@ class DataManager {
         return this.userProfile.targetWeight;
     }
 
-    // 计算加权平均周体重
     getWeeklyAverageWeight() {
         const records = this.getRecentWeightRecords(7);
         if (records.length === 0) return null;
@@ -142,7 +162,6 @@ class DataManager {
         return count > 0 ? (totalWeight / count).toFixed(1) : null;
     }
 
-    // 计算体重变化
     calculateWeightChange(days = 7) {
         const records = this.getRecentWeightRecords(days);
         if (records.length < 2) return null;
@@ -226,15 +245,13 @@ class DataManager {
         const yesterday = this.formatDate(new Date(Date.now() - 86400000));
 
         if (this.streak.lastDate === today) {
-            return; // 今天已经更新过
+            return;
         }
 
         if (this.streak.lastDate === yesterday) {
-            // 连续打卡
             this.streak.current++;
             this.streak.longest = Math.max(this.streak.current, this.streak.longest);
         } else if (this.streak.lastDate !== today) {
-            // 断签，重新开始
             this.streak.current = 1;
         }
 
@@ -252,7 +269,6 @@ class DataManager {
     checkAchievements() {
         const newAchievements = [];
 
-        // 连续打卡成就
         const streakMilestones = [3, 7, 14, 30, 60, 100];
         streakMilestones.forEach(days => {
             const id = `streak_${days}`;
@@ -266,7 +282,6 @@ class DataManager {
             }
         });
 
-        // 训练成就
         const totalWorkouts = Object.keys(this.workoutLogs).length;
         const workoutMilestones = [1, 10, 50, 100];
         workoutMilestones.forEach(count => {
@@ -281,7 +296,6 @@ class DataManager {
             }
         });
 
-        // 体重成就
         const startWeight = this.getStartWeight();
         const currentWeight = this.getLatestWeight();
         if (startWeight && currentWeight) {
@@ -373,7 +387,6 @@ class DataManager {
         };
     }
 
-    // 获取今日训练计划
     getTodayWorkout() {
         const plan = this.calculatePlan();
         if (!plan) return null;
@@ -388,8 +401,6 @@ class DataManager {
             dayOfWeek: dayName
         };
     }
-
-    // ============ 效率计算 ============
 
     calculateEfficiency() {
         const startWeight = this.getStartWeight();
@@ -433,8 +444,6 @@ class DataManager {
         };
     }
 
-    // ============ 周报生成 ============
-
     generateWeeklyReport() {
         const today = new Date();
         const weekAgo = new Date(today.getTime() - 7 * 86400000);
@@ -448,7 +457,6 @@ class DataManager {
 
         const efficiency = this.calculateEfficiency();
 
-        // 生成建议
         let suggestion = '';
         if (weightChange && parseFloat(weightChange) > 0) {
             suggestion = '本周体重有所上升，不必气馁。建议检查饮食中的隐藏热量，如酱料和含糖饮料。同时可以适当增加训练强度。';
@@ -481,8 +489,6 @@ class DataManager {
         return Math.ceil(diffDays / 7);
     }
 
-    // ============ 工具函数 ============
-
     formatDate(date) {
         const d = new Date(date);
         const year = d.getFullYear();
@@ -490,8 +496,6 @@ class DataManager {
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
-
-    // ============ 数据导出导入 ============
 
     exportAllData() {
         return {
@@ -547,5 +551,4 @@ class DataManager {
     }
 }
 
-// 创建全局数据管理实例
 const dataManager = new DataManager();

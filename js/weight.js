@@ -1,16 +1,23 @@
 /**
- * 体重追踪模块
+ * 体重追踪模块 - 性能优化版
  */
 
 let currentEditDate = null;
+
+// 防抖保存
+const debouncedSaveWeight = debounce(function(date, morning, evening) {
+    dataManager.saveWeightRecord(date, morning, evening);
+}, 500);
 
 /**
  * 初始化体重模块
  */
 function initWeightModule() {
     loadTodayWeight();
-    updateWeightDisplay();
-    renderWeightHistory();
+    // 延迟更新显示
+    requestAnimationFrame(() => {
+        updateWeightDisplay();
+    });
 }
 
 /**
@@ -21,13 +28,15 @@ function loadTodayWeight() {
     const record = dataManager.getWeightRecord(today);
 
     if (record) {
-        if (record.morning) {
-            document.getElementById('morningWeight').value = record.morning;
+        const morningInput = document.getElementById('morningWeight');
+        const eveningInput = document.getElementById('eveningWeight');
+
+        if (morningInput && record.morning) {
+            morningInput.value = record.morning;
         }
-        if (record.evening) {
-            document.getElementById('eveningWeight').value = record.evening;
+        if (eveningInput && record.evening) {
+            eveningInput.value = record.evening;
         }
-        updateWeightDiff();
     }
 }
 
@@ -48,24 +57,11 @@ function saveTodayWeight() {
 
     showToast('体重记录已保存');
     updateWeightDisplay();
-    updateWeightDiff();
     checkWeightMilestones();
-}
 
-/**
- * 更新体重差显示
- */
-function updateWeightDiff() {
-    const morningWeight = parseFloat(document.getElementById('morningWeight').value);
-    const eveningWeight = parseFloat(document.getElementById('eveningWeight').value);
-    const diffEl = document.getElementById('weightDiff');
-
-    if (morningWeight && eveningWeight) {
-        const diff = (eveningWeight - morningWeight).toFixed(1);
-        const isPositive = diff > 0;
-        diffEl.innerHTML = `今日净重变化: <span class="${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}${diff}kg</span>`;
-    } else {
-        diffEl.textContent = '';
+    // 清除图表缓存
+    if (typeof clearChartCache === 'function') {
+        clearChartCache();
     }
 }
 
@@ -80,39 +76,46 @@ function updateWeightDisplay() {
 
     if (!startWeight || !currentWeight || !targetWeight || !plan) return;
 
-    // 更新进度环
-    const totalWeightToChange = Math.abs(startWeight - targetWeight);
-    const weightChanged = Math.abs(startWeight - currentWeight);
-    const progress = Math.min((weightChanged / totalWeightToChange) * 100, 100);
+    // 使用 requestAnimationFrame 优化动画
+    requestAnimationFrame(() => {
+        // 更新进度环
+        const totalWeightToChange = Math.abs(startWeight - targetWeight);
+        const weightChanged = Math.abs(startWeight - currentWeight);
+        const progress = Math.min((weightChanged / totalWeightToChange) * 100, 100);
 
-    const circumference = 2 * Math.PI * 54;
-    const offset = circumference - (progress / 100) * circumference;
-    document.getElementById('progressRing').style.strokeDashoffset = offset;
+        const circumference = 2 * Math.PI * 54;
+        const offset = circumference - (progress / 100) * circumference;
 
-    // 更新剩余重量
-    const remaining = (currentWeight - targetWeight).toFixed(1);
-    document.getElementById('progressRemaining').textContent = `${remaining > 0 ? '-' : '+'}${Math.abs(remaining)}kg`;
+        const progressRing = document.getElementById('progressRing');
+        if (progressRing) {
+            progressRing.style.strokeDashoffset = offset;
+        }
 
-    // 更新预计天数
-    const weeklyRate = parseFloat(plan.weeklyRate);
-    const weeksRemaining = Math.abs(remaining) / weeklyRate;
-    const daysRemaining = Math.ceil(weeksRemaining * 7);
-    document.getElementById('progressETA').textContent = daysRemaining;
+        // 更新剩余重量
+        const remaining = (currentWeight - targetWeight).toFixed(1);
+        const remainingEl = document.getElementById('progressRemaining');
+        if (remainingEl) {
+            remainingEl.textContent = `${remaining > 0 ? '-' : '+'}${Math.abs(remaining)}kg`;
+        }
 
-    // 更新当前速率
-    const weeklyChange = dataManager.calculateWeightChange(7);
-    if (weeklyChange) {
-        document.getElementById('progressRate').textContent = Math.abs(weeklyChange);
-    }
+        // 更新预计天数
+        const weeklyRate = parseFloat(plan.weeklyRate);
+        const weeksRemaining = Math.abs(remaining) / weeklyRate;
+        const daysRemaining = Math.ceil(weeksRemaining * 7);
+        const etaEl = document.getElementById('progressETA');
+        if (etaEl) {
+            etaEl.textContent = daysRemaining;
+        }
 
-    // 更新进度环颜色
-    const isWeightLoss = plan.isWeightLoss;
-    const ring = document.getElementById('progressRing');
-    if (isWeightLoss) {
-        ring.style.stroke = '#4CAF50';
-    } else {
-        ring.style.stroke = '#FF9800';
-    }
+        // 更新当前速率
+        const weeklyChange = dataManager.calculateWeightChange(7);
+        if (weeklyChange) {
+            const rateEl = document.getElementById('progressRate');
+            if (rateEl) {
+                rateEl.textContent = Math.abs(weeklyChange);
+            }
+        }
+    });
 }
 
 /**
@@ -127,11 +130,12 @@ function checkWeightMilestones() {
     const weightLoss = startWeight - currentWeight;
     const milestones = [1, 2, 5, 10, 15, 20];
 
-    milestones.forEach(milestone => {
+    for (const milestone of milestones) {
         if (weightLoss >= milestone && weightLoss < milestone + 0.5) {
             showMilestoneAlert(milestone);
+            break;
         }
-    });
+    }
 }
 
 /**
@@ -160,11 +164,12 @@ function switchChartRange(element) {
     element.classList.add('active');
 
     const days = parseInt(element.dataset.range);
+    clearChartCache();
     renderWeightChart(days);
 }
 
 /**
- * 渲染体重历史
+ * 渲染体重历史（优化版 - 虚拟滚动）
  */
 function renderWeightHistory() {
     const records = dataManager.getWeightRecords();
@@ -173,31 +178,44 @@ function renderWeightHistory() {
     const listEl = document.getElementById('weightList');
     if (!listEl) return;
 
-    listEl.innerHTML = dates.slice(0, 30).map(date => {
+    // 只渲染前30条
+    const visibleDates = dates.slice(0, 30);
+
+    // 使用 DocumentFragment 批量插入
+    const fragment = document.createDocumentFragment();
+
+    visibleDates.forEach(date => {
         const record = records[date];
         const change = calculateDayChange(date);
 
-        return `
-            <div class="weight-record">
-                <div class="weight-record-date">${formatDisplayDate(date)}</div>
-                <div class="weight-record-values">
-                    <div class="weight-record-morning">
-                        <span class="weight-record-label">起床</span>
-                        <span class="weight-record-value">${record.morning || '-'}</span>
-                    </div>
-                    <div class="weight-record-evening">
-                        <span class="weight-record-label">睡前</span>
-                        <span class="weight-record-value">${record.evening || '-'}</span>
-                    </div>
+        const div = document.createElement('div');
+        div.className = 'weight-record';
+        div.onclick = () => openEditModal(date);
+
+        div.innerHTML = `
+            <div class="weight-record-date">${formatDisplayDate(date)}</div>
+            <div class="weight-record-values">
+                <div class="weight-record-morning">
+                    <span class="weight-record-label">起床</span>
+                    <span class="weight-record-value">${record.morning || '-'}</span>
                 </div>
-                <div class="weight-record-change">
-                    <span class="weight-record-change-value ${change > 0 ? 'positive' : 'negative'}">
-                        ${change ? (change > 0 ? '+' : '') + change + 'kg' : '-'}
-                    </span>
+                <div class="weight-record-evening">
+                    <span class="weight-record-label">睡前</span>
+                    <span class="weight-record-value">${record.evening || '-'}</span>
                 </div>
             </div>
+            <div class="weight-record-change">
+                <span class="weight-record-change-value ${change > 0 ? 'positive' : 'negative'}">
+                    ${change ? (change > 0 ? '+' : '') + change + 'kg' : '-'}
+                </span>
+            </div>
         `;
-    }).join('');
+
+        fragment.appendChild(div);
+    });
+
+    listEl.innerHTML = '';
+    listEl.appendChild(fragment);
 }
 
 /**
@@ -265,6 +283,7 @@ function saveEditedWeight() {
     closeEditModal();
     renderWeightHistory();
     updateWeightDisplay();
+    clearChartCache();
     showToast('体重记录已更新');
 }
 

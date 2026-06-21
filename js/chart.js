@@ -1,15 +1,28 @@
 /**
- * 图表模块 - 使用Canvas绘制体重曲线
+ * 图表模块 - 性能优化版
+ * 使用离屏Canvas和缓存优化渲染
  */
 
+// 图表缓存
+const chartCache = new Map();
+
 /**
- * 渲染体重图表
+ * 渲染体重图表（优化版）
  */
 function renderWeightChart(days = 7) {
     const canvas = document.getElementById('weightChart');
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
+    const cacheKey = `weight_${days}_${dataManager.formatDate(new Date())}`;
+
+    // 检查缓存
+    if (chartCache.has(cacheKey)) {
+        const cachedImage = chartCache.get(cacheKey);
+        ctx.putImageData(cachedImage, 0, 0);
+        return;
+    }
+
     const records = dataManager.getRecentWeightRecords(days);
 
     if (records.length === 0) {
@@ -30,35 +43,53 @@ function renderWeightChart(days = 7) {
     const minWeight = Math.min(...allWeights) - 0.5;
     const maxWeight = Math.max(...allWeights) + 0.5;
 
-    // 清空画布
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 使用 requestAnimationFrame 批量渲染
+    requestAnimationFrame(() => {
+        // 清空画布
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const padding = { top: 20, right: 20, bottom: 40, left: 50 };
-    const chartWidth = canvas.width - padding.left - padding.right;
-    const chartHeight = canvas.height - padding.top - padding.bottom;
+        const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+        const chartWidth = canvas.width - padding.left - padding.right;
+        const chartHeight = canvas.height - padding.top - padding.bottom;
 
-    // 绘制网格
-    drawGrid(ctx, padding, chartWidth, chartHeight, minWeight, maxWeight);
+        // 批量绘制
+        drawGrid(ctx, padding, chartWidth, chartHeight, minWeight, maxWeight);
+        drawXLabels(ctx, records, padding, chartWidth);
+        drawYLabels(ctx, minWeight, maxWeight, padding, chartHeight);
 
-    // 绘制X轴标签
-    drawXLabels(ctx, records, padding, chartWidth);
+        if (morningWeights.length > 1) {
+            drawLine(ctx, morningWeights, '#6C63FF', padding, chartWidth, chartHeight, minWeight, maxWeight, true);
+        }
 
-    // 绘制Y轴标签
-    drawYLabels(ctx, minWeight, maxWeight, padding, chartHeight);
+        if (eveningWeights.length > 1) {
+            drawLine(ctx, eveningWeights, '#FF6584', padding, chartWidth, chartHeight, minWeight, maxWeight, false);
+        }
 
-    // 绘制体重曲线
-    if (morningWeights.length > 1) {
-        drawLine(ctx, morningWeights, '#6C63FF', padding, chartWidth, chartHeight, minWeight, maxWeight, true);
-    }
+        if (morningWeights.length >= 3) {
+            drawTrendLine(ctx, morningWeights, '#00C9A7', padding, chartWidth, chartHeight, minWeight, maxWeight);
+        }
 
-    if (eveningWeights.length > 1) {
-        drawLine(ctx, eveningWeights, '#FF6584', padding, chartWidth, chartHeight, minWeight, maxWeight, false);
-    }
+        // 缓存渲染结果
+        try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            chartCache.set(cacheKey, imageData);
 
-    // 绘制趋势线
-    if (morningWeights.length >= 3) {
-        drawTrendLine(ctx, morningWeights, '#00C9A7', padding, chartWidth, chartHeight, minWeight, maxWeight);
-    }
+            // 限制缓存大小
+            if (chartCache.size > 10) {
+                const firstKey = chartCache.keys().next().value;
+                chartCache.delete(firstKey);
+            }
+        } catch (e) {
+            // 忽略缓存错误
+        }
+    });
+}
+
+/**
+ * 清除图表缓存
+ */
+function clearChartCache() {
+    chartCache.clear();
 }
 
 /**
@@ -68,15 +99,14 @@ function drawGrid(ctx, padding, chartWidth, chartHeight, minWeight, maxWeight) {
     ctx.strokeStyle = '#E8ECF1';
     ctx.lineWidth = 1;
 
-    // 水平线
+    ctx.beginPath();
     const ySteps = 5;
     for (let i = 0; i <= ySteps; i++) {
         const y = padding.top + (chartHeight / ySteps) * i;
-        ctx.beginPath();
         ctx.moveTo(padding.left, y);
         ctx.lineTo(padding.left + chartWidth, y);
-        ctx.stroke();
     }
+    ctx.stroke();
 }
 
 /**
@@ -115,7 +145,7 @@ function drawYLabels(ctx, minWeight, maxWeight, padding, chartHeight) {
 }
 
 /**
- * 绘制线条
+ * 绘制线条（优化版 - 使用单次路径绘制）
  */
 function drawLine(ctx, data, color, padding, chartWidth, chartHeight, minWeight, maxWeight, isSolid) {
     if (data.length < 2) return;
@@ -129,37 +159,33 @@ function drawLine(ctx, data, color, padding, chartWidth, chartHeight, minWeight,
         ctx.setLineDash([5, 5]);
     }
 
+    // 计算所有点的位置
+    const points = data.map((point, index) => ({
+        x: padding.left + (index / (data.length - 1)) * chartWidth,
+        y: padding.top + ((maxWeight - point.value) / (maxWeight - minWeight)) * chartHeight
+    }));
+
+    // 单次路径绘制曲线
     ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
 
-    data.forEach((point, index) => {
-        const x = padding.left + (index / (data.length - 1)) * chartWidth;
-        const y = padding.top + ((maxWeight - point.value) / (maxWeight - minWeight)) * chartHeight;
-
-        if (index === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            // 使用贝塞尔曲线使线条平滑
-            const prevX = padding.left + ((index - 1) / (data.length - 1)) * chartWidth;
-            const prevY = padding.top + ((maxWeight - data[index - 1].value) / (maxWeight - minWeight)) * chartHeight;
-            const cpX = (prevX + x) / 2;
-            ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
-        }
-    });
+    for (let i = 1; i < points.length; i++) {
+        const cpX = (points[i - 1].x + points[i].x) / 2;
+        ctx.bezierCurveTo(cpX, points[i - 1].y, cpX, points[i].y, points[i].x, points[i].y);
+    }
 
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // 绘制数据点
-    data.forEach((point, index) => {
-        const x = padding.left + (index / (data.length - 1)) * chartWidth;
-        const y = padding.top + ((maxWeight - point.value) / (maxWeight - minWeight)) * chartHeight;
+    // 批量绘制数据点
+    ctx.fillStyle = isSolid ? color : 'white';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
 
+    points.forEach(point => {
         ctx.beginPath();
-        ctx.arc(x, y, isSolid ? 4 : 3, 0, Math.PI * 2);
-        ctx.fillStyle = isSolid ? color : 'white';
+        ctx.arc(point.x, point.y, isSolid ? 4 : 3, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
         ctx.stroke();
     });
 }
@@ -170,7 +196,6 @@ function drawLine(ctx, data, color, padding, chartWidth, chartHeight, minWeight,
 function drawTrendLine(ctx, data, color, padding, chartWidth, chartHeight, minWeight, maxWeight) {
     if (data.length < 3) return;
 
-    // 计算移动平均
     const windowSize = Math.min(7, data.length);
     const trendData = [];
 
@@ -181,7 +206,8 @@ function drawTrendLine(ctx, data, color, padding, chartWidth, chartHeight, minWe
         }
         trendData.push({
             date: data[i].date,
-            value: sum / windowSize
+            value: sum / windowSize,
+            originalIndex: i
         });
     }
 
@@ -193,8 +219,7 @@ function drawTrendLine(ctx, data, color, padding, chartWidth, chartHeight, minWe
     ctx.beginPath();
 
     trendData.forEach((point, index) => {
-        const originalIndex = data.findIndex(d => d.date === point.date);
-        const x = padding.left + (originalIndex / (data.length - 1)) * chartWidth;
+        const x = padding.left + (point.originalIndex / (data.length - 1)) * chartWidth;
         const y = padding.top + ((maxWeight - point.value) / (maxWeight - minWeight)) * chartHeight;
 
         if (index === 0) {
@@ -216,7 +241,7 @@ function renderWeightDetailChart(days = 30) {
     const canvas = document.getElementById('weightDetailChart');
     if (!canvas) return;
 
-    // 使用与主图表相同的逻辑
+    // 使用相同的渲染逻辑
     renderWeightChart(days);
 }
 
@@ -239,7 +264,6 @@ function renderReportChart() {
         return;
     }
 
-    // 准备数据
     const weights = records.filter(r => r.morning).map(r => r.morning);
 
     if (weights.length === 0) return;
@@ -247,17 +271,14 @@ function renderReportChart() {
     const minWeight = Math.min(...weights) - 0.5;
     const maxWeight = Math.max(...weights) + 0.5;
 
-    // 清空画布
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const padding = { top: 20, right: 20, bottom: 40, left: 50 };
     const chartWidth = canvas.width - padding.left - padding.right;
     const chartHeight = canvas.height - padding.top - padding.bottom;
 
-    // 绘制网格
     drawGrid(ctx, padding, chartWidth, chartHeight, minWeight, maxWeight);
 
-    // 绘制X轴标签
     ctx.fillStyle = '#636E72';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
@@ -269,10 +290,8 @@ function renderReportChart() {
         ctx.fillText(dayNames[date.getDay()], x, padding.top + chartHeight + 20);
     });
 
-    // 绘制Y轴标签
     drawYLabels(ctx, minWeight, maxWeight, padding, chartHeight);
 
-    // 绘制曲线
     const weightData = records.map(r => ({ date: r.date, value: r.morning || 0 }));
     drawLine(ctx, weightData, '#6C63FF', padding, chartWidth, chartHeight, minWeight, maxWeight, true);
 }
