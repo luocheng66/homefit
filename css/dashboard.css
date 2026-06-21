@@ -1,0 +1,532 @@
+/* 仪表盘样式 */
+.main-app {
+    padding-bottom: 70px;
+}
+
+.dashboard {
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* 进度环 */
+.progress-ring-section {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    margin-bottom: 20px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+}
+
+.progress-ring-container {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 20px;
+}
+
+.progress-ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.progress-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.2);
+    stroke-width: 8;
+}
+
+.progress-ring-fill {
+    fill: none;
+    stroke: white;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 339.292;
+    stroke-dashoffset: 339.292;
+    transition: stroke-dashoffset 1s ease;
+}
+
+.progress-ring-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+}
+
+.progress-remaining {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.progress-label {
+    display: block;
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.progress-info {
+    color: white;
+}
+
+.progress-eta {
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+}
+
+.progress-rate {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* 今日体重录入 */
+.weight-input-section {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+}
+
+.weight-input-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.weight-inputs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.weight-input-card {
+    background: var(--background);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+}
+
+.weight-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.weight-input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    background: white;
+}
+
+.weight-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.weight-unit-small {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 4px;
+}
+
+.btn-save-weight {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-save-weight:hover {
+    background: #00B894;
+}
+
+.weight-diff {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.weight-diff .positive {
+    color: var(--danger);
+}
+
+.weight-diff .negative {
+    color: var(--success);
+}
+
+/* 体重曲线卡片 */
+.weight-chart-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.chart-header h3 {
+    font-size: 1.1rem;
+    color: var(--text);
+}
+
+.chart-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--background);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+}
+
+.chart-tab {
+    padding: 6px 12px;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.chart-tab.active {
+    background: white;
+    color: var(--primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.legend-dot.morning {
+    background: var(--primary);
+}
+
+.legend-dot.evening {
+    background: var(--secondary);
+}
+
+.legend-dot.trend {
+    background: var(--accent);
+}
+
+/* 今日训练 */
+.today-workout-section {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+}
+
+.today-workout-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.workout-preview {
+    background: linear-gradient(135deg, #FF9A9E 0%, #FAD0C4 100%);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.workout-type {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.workout-duration,
+.workout-muscles {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.btn-start-workout {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 8px;
+}
+
+.btn-start-workout:hover {
+    background: var(--primary-dark);
+}
+
+.btn-minimum-workout {
+    width: 100%;
+    padding: 10px;
+    background: none;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-minimum-workout:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* 饮食记录 */
+.diet-section {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+}
+
+.diet-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.diet-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.meal-card {
+    background: var(--background);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+}
+
+.meal-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 10px;
+}
+
+.meal-tags {
+    display: flex;
+    gap: 8px;
+}
+
+.meal-tag {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: white;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.meal-tag.green:hover,
+.meal-tag.green.selected {
+    border-color: var(--success);
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.meal-tag.yellow:hover,
+.meal-tag.yellow.selected {
+    border-color: var(--warning);
+    background: rgba(255, 152, 0, 0.1);
+}
+
+.meal-tag.red:hover,
+.meal-tag.red.selected {
+    border-color: var(--danger);
+    background: rgba(244, 67, 54, 0.1);
+}
+
+/* 激励语录 */
+.motivation-section {
+    margin-bottom: 20px;
+}
+
+.motivation-card {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.motivation-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    opacity: 0.9;
+}
+
+.motivation-content {
+    position: relative;
+    padding: 32px;
+    text-align: center;
+    color: white;
+}
+
+.motivation-quote {
+    font-size: 1.2rem;
+    font-weight: 500;
+    line-height: 1.8;
+    margin-bottom: 12px;
+}
+
+.motivation-source {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.btn-share {
+    width: 100%;
+    padding: 12px;
+    background: var(--card-bg);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-top: 12px;
+}
+
+.btn-share:hover {
+    background: rgba(108, 99, 255, 0.1);
+}
+
+/* 连续打卡 */
+.streak-section {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.streak-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.streak-display {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.streak-number {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.streak-label {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+.streak-badges {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    background: var(--background);
+    border: 2px solid var(--border);
+}
+
+.badge.earned {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border-color: #FFD700;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+    .dashboard {
+        padding: 16px;
+    }
+
+    .progress-ring-section {
+        padding: 24px;
+    }
+
+    .weight-inputs {
+        grid-template-columns: 1fr;
+    }
+}

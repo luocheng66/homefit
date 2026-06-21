@@ -1,0 +1,345 @@
+/* 训练页面样式 */
+.workout-page {
+    padding-bottom: 70px;
+}
+
+.workout-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--card-bg);
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.workout-header h2 {
+    font-size: 1.2rem;
+    color: var(--text);
+}
+
+.workout-timer {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.workout-content {
+    padding: 20px;
+}
+
+.workout-phase {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+}
+
+.workout-phase h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.exercise-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.exercise-item {
+    background: var(--background);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: var(--transition);
+}
+
+.exercise-item.active {
+    border: 2px solid var(--primary);
+    background: rgba(108, 99, 255, 0.05);
+}
+
+.exercise-item.completed {
+    opacity: 0.6;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.exercise-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.exercise-info {
+    flex: 1;
+}
+
+.exercise-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.exercise-detail {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.exercise-sets {
+    font-size: 0.8rem;
+    color: var(--primary);
+    margin-top: 4px;
+}
+
+.exercise-status {
+    font-size: 1.2rem;
+}
+
+.exercise-item.completed .exercise-status::after {
+    content: '✓';
+    color: var(--success);
+    font-weight: 700;
+}
+
+/* 动作动图 */
+.exercise-gif {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-sm);
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+/* 训练控制 */
+.workout-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    padding: 16px 20px;
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 12px;
+}
+
+.btn-complete-exercise {
+    flex: 1;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-complete-exercise:hover {
+    background: var(--primary-dark);
+}
+
+.btn-complete-workout {
+    padding: 14px 24px;
+    background: var(--success);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-complete-workout:hover {
+    background: #43A047;
+}
+
+/* 训练反馈 */
+.workout-feedback {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.workout-feedback .modal-content {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+}
+
+.workout-feedback h3 {
+    font-size: 1.3rem;
+    margin-bottom: 24px;
+}
+
+.effort-slider {
+    margin-bottom: 32px;
+}
+
+.effort-range {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, var(--success), var(--warning), var(--danger));
+    border-radius: 4px;
+    outline: none;
+    margin-bottom: 12px;
+}
+
+.effort-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.effort-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* 语音引导控制 */
+.voice-control {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    z-index: 50;
+}
+
+.voice-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+}
+
+.voice-btn:hover {
+    transform: scale(1.1);
+}
+
+.voice-btn.active {
+    background: var(--danger);
+}
+
+/* 训练完成动画 */
+.workout-complete-animation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.complete-celebration {
+    text-align: center;
+    color: white;
+    animation: celebrateIn 0.5s ease;
+}
+
+@keyframes celebrateIn {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.complete-emoji {
+    font-size: 5rem;
+    margin-bottom: 20px;
+}
+
+.complete-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.complete-subtitle {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin-bottom: 24px;
+}
+
+.complete-stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 32px;
+}
+
+.complete-stat {
+    text-align: center;
+}
+
+.complete-stat-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.complete-stat-label {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+    .workout-controls {
+        flex-direction: column;
+    }
+
+    .exercise-item {
+        flex-wrap: wrap;
+    }
+
+    .exercise-gif {
+        width: 60px;
+        height: 60px;
+    }
+}

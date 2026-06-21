@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蜕变·HomeFit - 在家锻炼规划与追踪</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/onboarding.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/weight.css">
+    <link rel="stylesheet" href="css/workout.css">
+    <link rel="stylesheet" href="css/motivation.css">
+</head>
+<body>
+    <!-- 首次启动引导问卷 -->
+    <div id="onboarding" class="onboarding-container">
+        <div class="onboarding-progress">
+            <div class="progress-bar" id="onboardingProgress"></div>
+            <span class="progress-text" id="progressText">1/8</span>
+        </div>
+
+        <!-- 步骤1：欢迎页 -->
+        <div class="onboarding-step active" id="step-welcome">
+            <div class="step-content">
+                <div class="welcome-icon">🏋️</div>
+                <h1>欢迎来到蜕变·HomeFit</h1>
+                <p>让我们一起开始你的蜕变之旅</p>
+                <p class="subtitle">只需回答几个简单的问题，为你量身定制专属计划</p>
+                <button class="btn-primary" onclick="nextStep('gender')">开始</button>
+            </div>
+        </div>
+
+        <!-- 步骤2：性别选择 -->
+        <div class="onboarding-step" id="step-gender">
+            <div class="step-content">
+                <h2>你的性别是？</h2>
+                <p class="step-desc">这将帮助我们为你制定更合适的训练计划</p>
+                <div class="options-grid">
+                    <button class="option-card" data-value="male" onclick="selectOption(this, 'gender')">
+                        <span class="option-icon">👨</span>
+                        <span class="option-text">男性</span>
+                    </button>
+                    <button class="option-card" data-value="female" onclick="selectOption(this, 'gender')">
+                        <span class="option-icon">👩</span>
+                        <span class="option-text">女性</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步骤3：年龄 -->
+        <div class="onboarding-step" id="step-age">
+            <div class="step-content">
+                <h2>你的年龄是？</h2>
+                <p class="step-desc">年龄帮助我们调整训练强度</p>
+                <div class="input-group">
+                    <input type="number" id="ageInput" min="10" max="80" placeholder="请输入年龄" class="form-input">
+                    <span class="input-suffix">岁</span>
+                </div>
+                <button class="btn-primary" onclick="saveAge()">下一步</button>
+            </div>
+        </div>
+
+        <!-- 步骤4：身高 -->
+        <div class="onboarding-step" id="step-height">
+            <div class="step-content">
+                <h2>你的身高是？</h2>
+                <p class="step-desc">身高用于计算BMI和理想体重</p>
+                <div class="input-group">
+                    <input type="number" id="heightInput" min="100" max="250" placeholder="请输入身高" class="form-input">
+                    <span class="input-suffix">cm</span>
+                </div>
+                <button class="btn-primary" onclick="saveHeight()">下一步</button>
+            </div>
+        </div>
+
+        <!-- 步骤5：当前体重 -->
+        <div class="onboarding-step" id="step-current-weight">
+            <div class="step-content">
+                <h2>你当前的体重是？</h2>
+                <p class="step-desc">精确到小数点后一位</p>
+                <div class="unit-toggle">
+                    <button class="unit-btn active" data-unit="kg" onclick="toggleUnit(this)">kg</button>
+                    <button class="unit-btn" data-unit="lb" onclick="toggleUnit(this)">lb</button>
+                </div>
+                <div class="input-group">
+                    <input type="number" id="currentWeightInput" min="20" max="300" step="0.1" placeholder="例如：65.5" class="form-input">
+                    <span class="input-suffix weight-unit">kg</span>
+                </div>
+                <button class="btn-primary" onclick="saveCurrentWeight()">下一步</button>
+            </div>
+        </div>
+
+        <!-- 步骤6：目标体重 -->
+        <div class="onboarding-step" id="step-target-weight">
+            <div class="step-content">
+                <h2>你的目标体重是？</h2>
+                <p class="step-desc">我们会根据你的BMI判断目标是否科学</p>
+                <div class="bmi-info" id="bmiInfo"></div>
+                <div class="input-group">
+                    <input type="number" id="targetWeightInput" min="20" max="300" step="0.1" placeholder="例如：60.0" class="form-input">
+                    <span class="input-suffix weight-unit">kg</span>
+                </div>
+                <div class="weight-warning hidden" id="weightWarning"></div>
+                <button class="btn-primary" onclick="saveTargetWeight()">下一步</button>
+            </div>
+        </div>
+
+        <!-- 步骤7：计划周期 -->
+        <div class="onboarding-step" id="step-duration">
+            <div class="step-content">
+                <h2>选择你的计划周期</h2>
+                <p class="step-desc">我们会根据周期计算每周建议减重速率</p>
+                <div class="duration-options">
+                    <button class="duration-card" data-weeks="4" onclick="selectDuration(this)">
+                        <span class="duration-title">4周冲击</span>
+                        <span class="duration-desc">快速见效</span>
+                        <span class="duration-rate" id="rate4"></span>
+                    </button>
+                    <button class="duration-card" data-weeks="8" onclick="selectDuration(this)">
+                        <span class="duration-title">8周标准</span>
+                        <span class="duration-desc">均衡塑形</span>
+                        <span class="duration-rate" id="rate8"></span>
+                    </button>
+                    <button class="duration-card" data-weeks="12" onclick="selectDuration(this)">
+                        <span class="duration-title">12周健康</span>
+                        <span class="duration-desc">稳步蜕变</span>
+                        <span class="duration-rate" id="rate12"></span>
+                    </button>
+                </div>
+                <div class="end-date" id="endDate"></div>
+            </div>
+        </div>
+
+        <!-- 步骤8：环境选择 -->
+        <div class="onboarding-step" id="step-environment">
+            <div class="step-content">
+                <h2>你的锻炼环境是？</h2>
+                <p class="step-desc">选择主要锻炼场所，我们将为你定制专属计划</p>
+                <div class="env-options">
+                    <button class="env-card" data-env="indoor" onclick="selectEnvironment(this)">
+                        <span class="env-icon">🏠</span>
+                        <span class="env-title">室内模式</span>
+                        <span class="env-desc">在家锻炼</span>
+                    </button>
+                    <button class="env-card" data-env="outdoor" onclick="selectEnvironment(this)">
+                        <span class="env-icon">🌳</span>
+                        <span class="env-title">室外模式</span>
+                        <span class="env-desc">户外运动</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步骤9：室内详情 -->
+        <div class="onboarding-step" id="step-indoor-detail">
+            <div class="step-content">
+                <h2>室内锻炼详情</h2>
+                <p class="step-desc">告诉我们你的可用器材和空间</p>
+
+                <div class="detail-section">
+                    <h3>可用器材（可多选）</h3>
+                    <div class="equip-options">
+                        <button class="equip-btn" data-equip="none" onclick="toggleEquip(this)">无器材</button>
+                        <button class="equip-btn" data-equip="mat" onclick="toggleEquip(this)">瑜伽垫</button>
+                        <button class="equip-btn" data-equip="band" onclick="toggleEquip(this)">弹力带</button>
+                        <button class="equip-btn" data-equip="dumbbell" onclick="toggleEquip(this)">哑铃</button>
+                        <button class="equip-btn" data-equip="rack" onclick="toggleEquip(this)">健身架</button>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>运动空间大小</h3>
+                    <div class="space-options">
+                        <button class="space-btn" data-space="small" onclick="selectSpace(this)">小（2-3㎡）</button>
+                        <button class="space-btn" data-space="medium" onclick="selectSpace(this)">中（4-6㎡）</button>
+                        <button class="space-btn" data-space="large" onclick="selectSpace(this)">大（>6㎡）</button>
+                    </div>
+                </div>
+
+                <button class="btn-primary" onclick="saveIndoorDetail()">下一步</button>
+            </div>
+        </div>
+
+        <!-- 步骤10：室外详情 -->
+        <div class="onboarding-step" id="step-outdoor-detail">
+            <div class="step-content">
+                <h2>室外锻炼详情</h2>
+                <p class="step-desc">告诉我们你的运动环境和偏好</p>
+
+                <div class="detail-section">
+                    <h3>周边环境</h3>
+                    <div class="env-detail-options">
+                        <button class="env-detail-btn" data-area="community" onclick="selectArea(this)">小区</button>
+                        <button class="env-detail-btn" data-area="park" onclick="selectArea(this)">公园</button>
+                        <button class="env-detail-btn" data-area="playground" onclick="selectArea(this)">操场</button>
+                        <button class="env-detail-btn" data-area="none" onclick="selectArea(this)">无特定场所</button>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>运动偏好</h3>
+                    <div class="preference-options">
+                        <button class="pref-btn" data-pref="running" onclick="selectPreference(this)">跑步</button>
+                        <button class="pref-btn" data-pref="walking" onclick="selectPreference(this)">快走</button>
+                        <button class="pref-btn" data-pref="both" onclick="selectPreference(this)">都可以</button>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>当前体能水平</h3>
+                    <div class="fitness-options">
+                        <button class="fitness-btn" data-level="sedentary" onclick="selectFitness(this)">从不运动</button>
+                        <button class="fitness-btn" data-level="occasional" onclick="selectFitness(this)">偶尔运动</button>
+                        <button class="fitness-btn" data-level="regular" onclick="selectFitness(this)">经常运动</button>
+                    </div>
+                </div>
+
+                <button class="btn-primary" onclick="saveOutdoorDetail()">下一步</button>
+            </div>
+        </div>
+
+        <!-- 步骤11：健康状况 -->
+        <div class="onboarding-step" id="step-health">
+            <div class="step-content">
+                <h2>健康状况与限制</h2>
+                <p class="step-desc">选择你的健康状况，我们将自动规避危险动作</p>
+
+                <div class="health-options">
+                    <button class="health-btn" data-health="none" onclick="toggleHealth(this)">无特殊状况</button>
+                    <button class="health-btn" data-health="knee" onclick="toggleHealth(this)">膝盖不适</button>
+                    <button class="health-btn" data-health="back" onclick="toggleHealth(this)">腰部问题</button>
+                    <button class="health-btn" data-health="hypertension" onclick="toggleHealth(this)">高血压</button>
+                    <button class="health-btn" data-health="heart" onclick="toggleHealth(this)">心脏问题</button>
+                    <button class="health-btn" data-health="ankle" onclick="toggleHealth(this)">脚踝问题</button>
+                    <button class="health-btn" data-health="shoulder" onclick="toggleHealth(this)">肩部问题</button>
+                    <button class="health-btn" data-health="pregnancy" onclick="toggleHealth(this)">孕期/产后</button>
+                </div>
+
+                <button class="btn-primary" onclick="saveHealthAndGenerate()">生成我的专属计划</button>
+            </div>
+        </div>
+
+        <!-- 步骤12：计划生成中 -->
+        <div class="onboarding-step" id="step-generating">
+            <div class="step-content">
+                <div class="generating-animation">
+                    <div class="pulse-ring"></div>
+                    <div class="generating-icon">🏋️</div>
+                </div>
+                <h2>正在为你生成专属计划</h2>
+                <p class="step-desc">基于你的身体数据和目标，AI正在制定最佳方案</p>
+                <div class="generating-progress">
+                    <div class="generating-bar" id="generatingBar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步骤13：计划完成 -->
+        <div class="onboarding-step" id="step-complete">
+            <div class="step-content">
+                <div class="complete-icon">🎉</div>
+                <h2>你的专属计划已生成！</h2>
+                <p class="step-desc">准备好开始蜕变之旅了吗？</p>
+
+                <div class="plan-summary" id="planSummary">
+                    <div class="summary-item">
+                        <span class="summary-label">计划周期</span>
+                        <span class="summary-value" id="summaryDuration"></span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">训练模式</span>
+                        <span class="summary-value" id="summaryMode"></span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">每周训练</span>
+                        <span class="summary-value" id="summaryFrequency"></span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">目标体重</span>
+                        <span class="summary-value" id="summaryTarget"></span>
+                    </div>
+                </div>
+
+                <button class="btn-primary btn-large" onclick="startJourney()">开始蜕变之旅</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主应用界面 -->
+    <div id="mainApp" class="main-app hidden">
+        <!-- 顶部导航 -->
+        <nav class="app-nav">
+            <div class="nav-brand">
+                <span class="brand-icon">🏋️</span>
+                <span class="brand-text">蜕变·HomeFit</span>
+            </div>
+            <div class="nav-actions">
+                <button class="nav-btn" onclick="showSettings()">⚙️</button>
+            </div>
+        </nav>
+
+        <!-- 首页仪表盘 -->
+        <div class="dashboard active" id="dashboard">
+            <!-- 进度环 -->
+            <div class="progress-ring-section">
+                <div class="progress-ring-container">
+                    <svg class="progress-ring" viewBox="0 0 120 120">
+                        <circle class="progress-ring-bg" cx="60" cy="60" r="54"></circle>
+                        <circle class="progress-ring-fill" id="progressRing" cx="60" cy="60" r="54"></circle>
+                    </svg>
+                    <div class="progress-ring-text">
+                        <span class="progress-remaining" id="progressRemaining">-5kg</span>
+                        <span class="progress-label">距离目标</span>
+                    </div>
+                </div>
+                <div class="progress-info">
+                    <p class="progress-eta">预计 <span id="progressETA">28</span> 天达成</p>
+                    <p class="progress-rate">当前速率: <span id="progressRate">0.5</span> kg/周</p>
+                </div>
+            </div>
+
+            <!-- 今日体重录入 -->
+            <div class="weight-input-section">
+                <h3>📊 今日体重记录</h3>
+                <div class="weight-inputs">
+                    <div class="weight-input-card morning">
+                        <span class="weight-label">🌅 起床体重</span>
+                        <input type="number" id="morningWeight" step="0.1" placeholder="空腹体重" class="weight-input">
+                        <span class="weight-unit-small">kg</span>
+                    </div>
+                    <div class="weight-input-card evening">
+                        <span class="weight-label">🌙 睡前体重</span>
+                        <input type="number" id="eveningWeight" step="0.1" placeholder="睡前体重" class="weight-input">
+                        <span class="weight-unit-small">kg</span>
+                    </div>
+                </div>
+                <button class="btn-save-weight" onclick="saveTodayWeight()">记录今日体重</button>
+                <div class="weight-diff" id="weightDiff"></div>
+            </div>
+
+            <!-- 体重曲线小卡片 -->
+            <div class="weight-chart-card">
+                <div class="chart-header">
+                    <h3>📈 体重趋势</h3>
+                    <div class="chart-tabs">
+                        <button class="chart-tab active" data-range="7" onclick="switchChartRange(this)">7天</button>
+                        <button class="chart-tab" data-range="14" onclick="switchChartRange(this)">14天</button>
+                        <button class="chart-tab" data-range="30" onclick="switchChartRange(this)">30天</button>
+                    </div>
+                </div>
+                <canvas id="weightChart" width="400" height="200"></canvas>
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-dot morning"></span> 起床体重</span>
+                    <span class="legend-item"><span class="legend-dot evening"></span> 睡前体重</span>
+                    <span class="legend-item"><span class="legend-dot trend"></span> 趋势线</span>
+                </div>
+            </div>
+
+            <!-- 今日训练任务 -->
+            <div class="today-workout-section">
+                <h3>💪 今日训练</h3>
+                <div class="workout-preview" id="workoutPreview">
+                    <div class="workout-type" id="workoutType">全身力量训练</div>
+                    <div class="workout-duration" id="workoutDuration">约40分钟</div>
+                    <div class="workout-muscles" id="workoutMuscles">胸、背、腿、核心</div>
+                </div>
+                <button class="btn-start-workout" onclick="startWorkout()">开始训练</button>
+                <button class="btn-minimum-workout" onclick="startMinimumWorkout()">最低限度版本（5分钟）</button>
+            </div>
+
+            <!-- 饮食快记 -->
+            <div class="diet-section">
+                <h3>🥗 饮食记录</h3>
+                <div class="diet-inputs">
+                    <div class="meal-card">
+                        <span class="meal-label">早餐</span>
+                        <div class="meal-tags">
+                            <button class="meal-tag green" data-meal="breakfast" data-color="green" onclick="tagMeal(this)">🥬 健康</button>
+                            <button class="meal-tag yellow" data-meal="breakfast" data-color="yellow" onclick="tagMeal(this)">🍚 适量</button>
+                            <button class="meal-tag red" data-meal="breakfast" data-color="red" onclick="tagMeal(this)">🍔 放纵</button>
+                        </div>
+                    </div>
+                    <div class="meal-card">
+                        <span class="meal-label">午餐</span>
+                        <div class="meal-tags">
+                            <button class="meal-tag green" data-meal="lunch" data-color="green" onclick="tagMeal(this)">🥬 健康</button>
+                            <button class="meal-tag yellow" data-meal="lunch" data-color="yellow" onclick="tagMeal(this)">🍚 适量</button>
+                            <button class="meal-tag red" data-meal="lunch" data-color="red" onclick="tagMeal(this)">🍔 放纵</button>
+                        </div>
+                    </div>
+                    <div class="meal-card">
+                        <span class="meal-label">晚餐</span>
+                        <div class="meal-tags">
+                            <button class="meal-tag green" data-meal="dinner" data-color="green" onclick="tagMeal(this)">🥬 健康</button>
+                            <button class="meal-tag yellow" data-meal="dinner" data-color="yellow" onclick="tagMeal(this)">🍚 适量</button>
+                            <button class="meal-tag red" data-meal="dinner" data-color="red" onclick="tagMeal(this)">🍔 放纵</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 每日激励语录 -->
+            <div class="motivation-section">
+                <div class="motivation-card" id="motivationCard">
+                    <div class="motivation-bg"></div>
+                    <div class="motivation-content">
+                        <p class="motivation-quote" id="motivationQuote"></p>
+                        <p class="motivation-source" id="motivationSource"></p>
+                    </div>
+                </div>
+                <button class="btn-share" onclick="shareMotivation()">📤 分享</button>
+            </div>
+
+            <!-- 连续打卡徽章 -->
+            <div class="streak-section">
+                <h3>🔥 连续打卡</h3>
+                <div class="streak-display">
+                    <span class="streak-number" id="streakNumber">0</span>
+                    <span class="streak-label">天</span>
+                </div>
+                <div class="streak-badges" id="streakBadges"></div>
+            </div>
+        </div>
+
+        <!-- 训练页面 -->
+        <div class="workout-page hidden" id="workoutPage">
+            <div class="workout-header">
+                <button class="btn-back" onclick="backToDashboard()">← 返回</button>
+                <h2 id="workoutTitle">今日训练</h2>
+                <div class="workout-timer" id="workoutTimer">00:00</div>
+            </div>
+
+            <div class="workout-content">
+                <!-- 热身阶段 -->
+                <div class="workout-phase" id="warmupPhase">
+                    <h3>🔥 热身（5分钟）</h3>
+                    <div class="exercise-list" id="warmupExercises"></div>
+                </div>
+
+                <!-- 主体训练 -->
+                <div class="workout-phase" id="mainPhase">
+                    <h3>💪 主体训练</h3>
+                    <div class="exercise-list" id="mainExercises"></div>
+                </div>
+
+                <!-- 整理放松 -->
+                <div class="workout-phase" id="cooldownPhase">
+                    <h3>🧘 整理放松（5分钟）</h3>
+                    <div class="exercise-list" id="cooldownExercises"></div>
+                </div>
+            </div>
+
+            <div class="workout-controls">
+                <button class="btn-complete-exercise" onclick="completeExercise()">完成当前动作</button>
+                <button class="btn-complete-workout" onclick="completeWorkout()">完成训练</button>
+            </div>
+
+            <!-- 训练后反馈 -->
+            <div class="workout-feedback hidden" id="workoutFeedback">
+                <h3>训练感受如何？</h3>
+                <div class="effort-slider">
+                    <input type="range" id="effortRating" min="1" max="10" value="5" class="effort-range">
+                    <div class="effort-labels">
+                        <span>太轻松</span>
+                        <span>刚好</span>
+                        <span>太累</span>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="submitFeedback()">提交反馈</button>
+            </div>
+        </div>
+
+        <!-- 体重历史页面 -->
+        <div class="weight-history-page hidden" id="weightHistoryPage">
+            <div class="page-header">
+                <button class="btn-back" onclick="backToDashboard()">← 返回</button>
+                <h2>体重历史</h2>
+                <button class="btn-edit" onclick="toggleWeightEdit()">✏️ 编辑</button>
+            </div>
+
+            <div class="weight-detail-chart">
+                <canvas id="weightDetailChart" width="400" height="300"></canvas>
+            </div>
+
+            <div class="weight-stats">
+                <div class="stat-item">
+                    <span class="stat-label">本周变化</span>
+                    <span class="stat-value" id="weekChange">-0.5kg</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">本月变化</span>
+                    <span class="stat-value" id="monthChange">-2.0kg</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">总变化</span>
+                    <span class="stat-value" id="totalChange">-5.0kg</span>
+                </div>
+            </div>
+
+            <div class="weight-list" id="weightList"></div>
+
+            <!-- 编辑体重弹窗 -->
+            <div class="edit-weight-modal hidden" id="editWeightModal">
+                <div class="modal-content">
+                    <h3>编辑体重记录</h3>
+                    <div class="edit-date" id="editDate"></div>
+                    <div class="edit-inputs">
+                        <div class="edit-input-group">
+                            <label>起床体重</label>
+                            <input type="number" id="editMorningWeight" step="0.1" class="form-input">
+                        </div>
+                        <div class="edit-input-group">
+                            <label>睡前体重</label>
+                            <input type="number" id="editEveningWeight" step="0.1" class="form-input">
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn-secondary" onclick="closeEditModal()">取消</button>
+                        <button class="btn-primary" onclick="saveEditedWeight()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 周报页面 -->
+        <div class="weekly-report-page hidden" id="weeklyReportPage">
+            <div class="page-header">
+                <button class="btn-back" onclick="backToDashboard()">← 返回</button>
+                <h2>周报</h2>
+            </div>
+
+            <div class="report-content" id="reportContent">
+                <div class="report-header">
+                    <h3>第 <span id="reportWeek">1</span> 周周报</h3>
+                    <p class="report-date" id="reportDate"></p>
+                </div>
+
+                <div class="report-section">
+                    <h4>📊 体重变化</h4>
+                    <div class="report-chart">
+                        <canvas id="reportChart" width="350" height="200"></canvas>
+                    </div>
+                    <div class="report-stats">
+                        <div class="report-stat">
+                            <span class="report-stat-label">本周起始</span>
+                            <span class="report-stat-value" id="reportStartWeight"></span>
+                        </div>
+                        <div class="report-stat">
+                            <span class="report-stat-label">本周结束</span>
+                            <span class="report-stat-value" id="reportEndWeight"></span>
+                        </div>
+                        <div class="report-stat">
+                            <span class="report-stat-label">变化</span>
+                            <span class="report-stat-value" id="reportWeightChange"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h4>💪 训练情况</h4>
+                    <div class="report-training">
+                        <div class="report-training-item">
+                            <span class="training-label">完成训练</span>
+                            <span class="training-value" id="reportWorkouts"></span>
+                        </div>
+                        <div class="report-training-item">
+                            <span class="training-label">总时长</span>
+                            <span class="training-value" id="reportDuration"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h4>💡 效率评价</h4>
+                    <p class="report-efficiency" id="reportEfficiency"></p>
+                </div>
+
+                <div class="report-section">
+                    <h4>📝 建议</h4>
+                    <p class="report-suggestion" id="reportSuggestion"></p>
+                </div>
+
+                <div class="report-section">
+                    <h4>✨ 激励语录</h4>
+                    <p class="report-motivation" id="reportMotivation"></p>
+                </div>
+
+                <div class="report-actions">
+                    <button class="btn-secondary" onclick="exportReport('pdf')">📄 导出PDF</button>
+                    <button class="btn-secondary" onclick="exportReport('image')">🖼️ 导出图片</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-page="dashboard" onclick="switchPage(this)">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">首页</span>
+            </button>
+            <button class="nav-item" data-page="workout" onclick="switchPage(this)">
+                <span class="nav-icon">💪</span>
+                <span class="nav-label">训练</span>
+            </button>
+            <button class="nav-item" data-page="weight" onclick="switchPage(this)">
+                <span class="nav-icon">⚖️</span>
+                <span class="nav-label">体重</span>
+            </button>
+            <button class="nav-item" data-page="report" onclick="switchPage(this)">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">周报</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- 提示消息 -->
+    <div class="toast hidden" id="toast"></div>
+
+    <!-- 引入JS文件 -->
+    <script src="js/data.js"></script>
+    <script src="js/onboarding.js"></script>
+    <script src="js/workout.js"></script>
+    <script src="js/weight.js"></script>
+    <script src="js/motivation.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/report.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
